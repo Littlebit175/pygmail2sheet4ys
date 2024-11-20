@@ -2,7 +2,7 @@
 とあるECサイトの注文確認メールの内容をGmailから読み取り、スプレッドシートに転記するスクリプト
 
 # 使い方
-https://qiita.com/drafts/026f17aeb9261f7b04eb/
+https://qiita.com/Littlebit175/items/026f17aeb9261f7b04eb
 
 ## 必要なPythonライブラリのインストール
 ```
