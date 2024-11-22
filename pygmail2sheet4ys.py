@@ -5,6 +5,7 @@ import re
 import base64
 import datetime
 import json
+import pytz
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
@@ -57,7 +58,14 @@ def authenticate_sheets():
     return build('sheets', 'v4', credentials=creds)
 
 def search_emails(service, start_date, end_date):
-    query = f'from:shopping-order-master@mail.yahoo.co.jp after:{start_date} before:{end_date}'
+    jst = pytz.timezone('Asia/Tokyo')
+    start_date_jst = jst.localize(datetime.datetime.strptime(start_date, '%Y/%m/%d'))
+    end_date_jst = jst.localize(datetime.datetime.strptime(end_date, '%Y/%m/%d'))
+    
+    start_date_unix = int(start_date_jst.timestamp())
+    end_date_unix = int(end_date_jst.timestamp())
+    
+    query = f'from:shopping-order-master@mail.yahoo.co.jp after:{start_date_unix} before:{end_date_unix}'
     results = service.users().messages().list(userId='me', q=query).execute()
     messages = results.get('messages', [])
     return messages
