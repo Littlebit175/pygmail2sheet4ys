@@ -12,7 +12,7 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 
 # 認証情報の設定
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly',
+SCOPES = ['https://www.googleapis.com/auth/gmail.modify',  # 既読処理するためreadonlyではなくmodifyの権限が必要
           'https://www.googleapis.com/auth/spreadsheets']
 
 def authenticate_gmail():
@@ -186,16 +186,38 @@ def append_to_sheet(service, spreadsheet_id, sheet_name, data_list):
     }
     sheet.values().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
 
+def mark_messages_as_read(service, message_ids):
+    """複数のメールを一括で既読にする"""
+    try:
+        # 最大で1000件ずつバッチ処理
+        for i in range(0, len(message_ids), 1000):
+            batch = message_ids[i:i + 1000]
+            service.users().messages().batchModify(
+                userId='me',
+                body={
+                    'ids': batch,
+                    'removeLabelIds': ['UNREAD']
+                }
+            ).execute()
+    except Exception as e:
+        print(f"Error marking messages as read: {e}")
+
 def main(config):
     gmail_service = authenticate_gmail()
     sheets_service = authenticate_sheets()
     messages = search_emails(gmail_service, config['start_date'], config['end_date'])
 
     data_list = []
+    message_ids = []  # 既読にするメールのID一覧
     for message in messages:
         data = extract_data_from_email(gmail_service, message['id'])
         if data:  # データが空でないことを確認
             data_list.append(data)
+            message_ids.append(message['id'])
+
+    # 処理対象のメールを一括で既読にする
+    if message_ids:
+        mark_messages_as_read(gmail_service, message_ids)
 
     # "注文日" で昇順に並び替え、さらに "注文ID" で昇順に並び替え
     data_list = sorted(data_list, key=lambda x: (x.get('注文日', ''), x.get('注文ID', '')))
